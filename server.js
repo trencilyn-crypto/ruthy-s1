@@ -3,6 +3,8 @@ import mysql from 'mysql2';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -11,12 +13,16 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 
+// FIX __dirname FOR ES MODULE
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // MYSQL CONNECTION
 const pool = mysql.createPool({
   host: 'mysql-16fbe6d8-ruthyseatery12.l.aivencloud.com',
   port: 28811,
   user: 'avnadmin',
-  password: 'YOUR_PASSWORD_HERE',
+  password: 'YOUR_AIVEN_PASSWORD',
   database: 'defaultdb',
   ssl: {
     rejectUnauthorized: false
@@ -25,7 +31,7 @@ const pool = mysql.createPool({
 
 const db = pool.promise();
 
-// CREATE TABLE IF NOT EXISTS
+// CREATE TABLE
 const initDb = async () => {
   try {
     await db.query(`
@@ -33,17 +39,17 @@ const initDb = async () => {
         id INT PRIMARY KEY,
         config_json LONGTEXT
       )
-    `);
+    );
 
-    console.log('Database connected successfully');
+    console.log('✅ Database Connected');
   } catch (err) {
-    console.error('Database connection failed:', err.message);
+    console.error('❌ Database Error:', err.message);
   }
 };
 
 initDb();
 
-// GET DATA
+// API GET
 app.get('/api/data', async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -53,9 +59,7 @@ app.get('/api/data', async (req, res) => {
     if (rows.length > 0) {
       res.json(JSON.parse(rows[0].config_json));
     } else {
-      res.status(404).json({
-        message: 'No data found'
-      });
+      res.json({});
     }
   } catch (err) {
     res.status(500).json({
@@ -64,7 +68,7 @@ app.get('/api/data', async (req, res) => {
   }
 });
 
-// SAVE DATA
+// API POST
 app.post('/api/data', async (req, res) => {
   try {
     const config = JSON.stringify(req.body);
@@ -88,14 +92,16 @@ app.post('/api/data', async (req, res) => {
   }
 });
 
-// ROOT ROUTE
-app.get('/', (req, res) => {
-  res.send('Ruthy Backend Server is Running');
+// SERVE REACT FRONTEND
+app.use(express.static(path.join(__dirname, 'dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // PORT
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Ruthy Backend Server is Live on Port ${PORT}`);
+  console.log(`🚀 Ruthy System Running on Port ${PORT}`);
 });
