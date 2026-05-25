@@ -22,7 +22,7 @@ const pool = mysql.createPool({
   host: 'mysql-16fbe6d8-ruthyseatery12.l.aivencloud.com',
   port: 28811,
   user: 'avnadmin',
-  password: 'YOUR_AIVEN_PASSWORD',
+  password: 'AVNS_b_GwzztL-Efn3ph3zyE',
   database: 'defaultdb',
   ssl: {
     rejectUnauthorized: false
@@ -31,7 +31,7 @@ const pool = mysql.createPool({
 
 const db = pool.promise();
 
-// CREATE TABLE
+// INITIALIZE DATABASE
 const initDb = async () => {
   try {
     await db.query(`
@@ -39,17 +39,17 @@ const initDb = async () => {
         id INT PRIMARY KEY,
         config_json LONGTEXT
       )
-    );
+    `);
 
     console.log('✅ Database Connected');
   } catch (err) {
-    console.error('❌ Database Error:', err.message);
+    console.error('❌ Database Error:', err);
   }
 };
 
 initDb();
 
-// API GET
+// GET DATA API
 app.get('/api/data', async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -62,13 +62,15 @@ app.get('/api/data', async (req, res) => {
       res.json({});
     }
   } catch (err) {
+    console.error(err);
+
     res.status(500).json({
       error: err.message
     });
   }
 });
 
-// API POST
+// SAVE DATA API
 app.post('/api/data', async (req, res) => {
   try {
     const config = JSON.stringify(req.body);
@@ -86,13 +88,15 @@ app.post('/api/data', async (req, res) => {
       success: true
     });
   } catch (err) {
+    console.error(err);
+
     res.status(500).json({
       error: err.message
     });
   }
 });
 
-// SERVE REACT FRONTEND
+// SERVE FRONTEND
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
@@ -104,4 +108,13 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Ruthy System Running on Port ${PORT}`);
+});
+
+// ERROR HANDLERS
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION:', err);
 });
