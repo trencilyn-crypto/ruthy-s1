@@ -1,7 +1,3 @@
-/**
- * PRODUCTION NODE.JS SERVER FOR RENDER + AIVEN
- */
-
 import express from 'express';
 import mysql from 'mysql2';
 import cors from 'cors';
@@ -15,23 +11,39 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 
-// Aiven MySQL Connection
-const pool = mysql.createPool(process.env.AIVEN_URL);
+// MYSQL CONNECTION
+const pool = mysql.createPool({
+  host: 'mysql-16fbe6d8-ruthyseatery12.l.aivencloud.com',
+  port: 28811,
+  user: 'avnadmin',
+  password: 'YOUR_PASSWORD_HERE',
+  database: 'defaultdb',
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
 const db = pool.promise();
 
-// Initialize Database Table
+// CREATE TABLE IF NOT EXISTS
 const initDb = async () => {
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS site_configs (
-      id INT PRIMARY KEY,
-      config_json LONGTEXT
-    )
-  `);
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS site_configs (
+        id INT PRIMARY KEY,
+        config_json LONGTEXT
+      )
+    `);
+
+    console.log('Database connected successfully');
+  } catch (err) {
+    console.error('Database connection failed:', err.message);
+  }
 };
 
 initDb();
 
-// GET Site Data
+// GET DATA
 app.get('/api/data', async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -41,14 +53,18 @@ app.get('/api/data', async (req, res) => {
     if (rows.length > 0) {
       res.json(JSON.parse(rows[0].config_json));
     } else {
-      res.status(404).json({ message: 'No data found' });
+      res.status(404).json({
+        message: 'No data found'
+      });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
-// POST Site Data
+// SAVE DATA
 app.post('/api/data', async (req, res) => {
   try {
     const config = JSON.stringify(req.body);
@@ -62,13 +78,23 @@ app.post('/api/data', async (req, res) => {
       [config, config]
     );
 
-    res.json({ success: true });
+    res.json({
+      success: true
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
-const PORT = process.env.PORT || 3001;
+// ROOT ROUTE
+app.get('/', (req, res) => {
+  res.send('Ruthy Backend Server is Running');
+});
+
+// PORT
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Ruthy Backend Server is Live on Port ${PORT}`);
